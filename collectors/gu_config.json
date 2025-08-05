@@ -1,0 +1,55 @@
+{
+  "supported_gu": {
+    "강남구": {
+      "gu_code": "1168000000",
+      "center_coordinate": [37.517408, 127.047313, 14],
+      "expected_dong_count": 22,
+      "expected_dongs": [
+        "청담동", "압구정동", "신사동", "논현동", "역삼동", 
+        "개포동", "대치동", "삼성동", "도곡동", "수서동",
+        "일원동", "세곡동", "자곡동", "율현동", "개포1동",
+        "개포2동", "개포4동", "대치1동", "대치2동", "대치4동",
+        "삼성1동", "삼성2동"
+      ],
+      "scan_config": {
+        "grid_size": 30,
+        "max_zoom": 17,
+        "scan_radius_km": 12
+      },
+      "collection_priority": {
+        "high_density_threshold": 15,
+        "medium_density_threshold": 10,
+        "batch_delay_minutes": 2
+      }
+    },
+    
+    "송파구": {
+      "gu_code": "1171500000", 
+      "center_coordinate": [37.514575, 127.105399, 14],
+      "expected_dong_count": 28,
+      "expected_dongs": [
+        "잠실동", "신천동", "풍납동", "송파동", "석촌동",
+        "삼전동", "가락동", "문정동", "장지동", "방이동",
+        "오금동", "거여동", "마천동"
+      ],
+      "scan_config": {
+        "grid_size": 30,
+        "max_zoom": 16, 
+        "scan_radius_km": 10
+      },
+      "collection_priority": {
+        "high_density_threshold": 80,
+        "medium_density_threshold": 25,
+        "batch_delay_minutes": 45
+      }
+    }
+  },
+  
+  "global_settings": {
+    "default_property_types": "SG:SMS:GJCG:APTHGJ:GM:TJ",
+    "default_purpose": "RETAIL",
+    "collection_delay_seconds": 1,
+    "batch_rest_minutes": 2,
+    "max_retries": 3
+  }
+}
