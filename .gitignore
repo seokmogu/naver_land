@@ -27,6 +27,7 @@ Thumbs.db
 !requirements*.txt
 !package.json
 !config.template.json
+!config.json
 !gu_config.json
 !supabase_schema.sql
 token.txt

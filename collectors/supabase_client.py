@@ -71,9 +71,14 @@ class SupabaseHelper:
                 property_record = self._prepare_property_record(prop, cortar_no, today)
                 
                 if article_no not in existing_map:
-                    # 신규 매물
-                    self.client.table('properties').insert(property_record).execute()
-                    stats['new_count'] += 1
+                    # 신규 매물 - upsert 사용으로 중복 오류 방지
+                    try:
+                        self.client.table('properties').upsert(property_record).execute()
+                        stats['new_count'] += 1
+                    except Exception as e:
+                        # 중복이나 기타 오류 발생시 무시하고 계속 진행
+                        print(f"⚠️ 매물 저장 스킵 ({article_no}): {e}")
+                        continue
                 else:
                     # 기존 매물 - 가격 변동 체크
                     old_price = existing_map[article_no]['price']

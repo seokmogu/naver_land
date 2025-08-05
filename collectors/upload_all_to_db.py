@@ -55,29 +55,50 @@ def main():
         cmd = ["./venv/bin/python", "json_to_supabase.py", filepath, cortar_no]
         
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)  # 5분 타임아웃
+            # 타임아웃 없음 - 완료될 때까지 대기
+            print(f"  ⏳ 업로드 중... (완료될 때까지 대기)")
+            result = subprocess.run(cmd, capture_output=True, text=True)
             
             if result.returncode == 0:
                 # 성공 메시지에서 매물 수 추출
                 output_lines = result.stdout.strip().split('\n')
                 property_count = 0
+                
+                # "총 저장량: X개" 라인을 찾아서 파싱
                 for line in output_lines:
-                    if '전체 처리 완료:' in line:
+                    if '총 저장량:' in line:
                         count_str = line.split(':')[1].strip().split('개')[0]
                         property_count = int(count_str)
-                        total_properties += property_count
-                        print(f"  ✅ 성공: {property_count}개 매물 저장")
                         break
+                
+                # 없으면 "전체 처리 완료:" 라인에서 파싱
+                if property_count == 0:
+                    for line in output_lines:
+                        if '전체 처리 완료:' in line:
+                            count_str = line.split(':')[1].strip().split('개')[0]
+                            property_count = int(count_str)
+                            break
+                
+                total_properties += property_count
+                print(f"  ✅ 성공: {property_count}개 매물 처리됨")
+                
+                # 신규/업데이트 정보도 표시
+                new_count = 0
+                updated_count = 0
+                for line in output_lines:
+                    if '신규 매물:' in line:
+                        new_count = int(line.split(':')[1].strip().split('개')[0])
+                    elif '가격 변동:' in line:
+                        updated_count = int(line.split(':')[1].strip().split('개')[0])
+                
+                if new_count > 0 or updated_count > 0:
+                    print(f"    (신규: {new_count}개, 가격변동: {updated_count}개)")
                 success_count += 1
             else:
                 print(f"  ❌ 실패: {result.stderr}")
                 fail_count += 1
                 failed_files.append(filename)
                 
-        except subprocess.TimeoutExpired:
-            print(f"  ❌ 타임아웃 (5분 초과)")
-            fail_count += 1
-            failed_files.append(filename)
         except Exception as e:
             print(f"  ❌ 오류 발생: {e}")
             fail_count += 1
