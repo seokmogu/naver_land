@@ -52,9 +52,9 @@ class SupabaseHelper:
         }
         
         try:
-            # 1. 기존 활성 매물 조회
+            # 1. 기존 활성 매물 조회 (가격과 월세 정보 포함)
             existing = self.client.table('properties')\
-                .select('article_no, price')\
+                .select('article_no, price, rent_price, trade_type')\
                 .eq('cortar_no', cortar_no)\
                 .eq('is_active', True)\
                 .execute()
@@ -67,7 +67,7 @@ class SupabaseHelper:
                 article_no = prop['매물번호']
                 collected_ids.add(article_no)
                 
-                # 저장할 데이터 준비
+                # 저장할 데이터 준비 (last_seen_date 업데이트)
                 property_record = self._prepare_property_record(prop, cortar_no, today)
                 
                 if article_no not in existing_map:
@@ -80,33 +80,69 @@ class SupabaseHelper:
                         print(f"⚠️ 매물 저장 스킵 ({article_no}): {e}")
                         continue
                 else:
-                    # 기존 매물 - 가격 변동 체크
-                    old_price = existing_map[article_no]['price']
-                    new_price = property_record['price']
+                    # 기존 매물 - 가격 및 월세 변동 체크
+                    existing_property = existing_map[article_no]
+                    old_price = existing_property['price']
+                    old_rent_price = existing_property.get('rent_price', 0)
+                    trade_type = existing_property.get('trade_type', property_record['trade_type'])
                     
-                    if old_price != new_price:
-                        # 가격 변동 - 업데이트
+                    new_price = property_record['price']
+                    new_rent_price = property_record['rent_price']
+                    
+                    price_changed = old_price != new_price
+                    rent_changed = old_rent_price != new_rent_price
+                    
+                    if price_changed or rent_changed:
+                        # 가격/월세 변동 - 업데이트
+                        update_data = {
+                            'price': new_price,
+                            'rent_price': new_rent_price,
+                            'last_seen_date': today.isoformat(),
+                            'updated_at': datetime.now().isoformat()
+                        }
+                        
                         self.client.table('properties')\
-                            .update({
-                                'price': new_price,
-                                'updated_at': datetime.now().isoformat()
-                            })\
+                            .update(update_data)\
                             .eq('article_no', article_no)\
                             .execute()
                         
-                        # 가격 변동 이력 저장
-                        self._save_price_history(article_no, old_price, new_price, today)
+                        # 가격 변동 이력 저장 (월세 포함)
+                        self._save_price_history(
+                            article_no, trade_type, 
+                            old_price, new_price, 
+                            old_rent_price, new_rent_price, 
+                            today
+                        )
                         stats['updated_count'] += 1
+                    else:
+                        # 가격 변동 없으면 last_seen_date만 업데이트
+                        self.client.table('properties')\
+                            .update({'last_seen_date': today.isoformat()})\
+                            .eq('article_no', article_no)\
+                            .execute()
                 
                 stats['total_saved'] += 1
             
-            # 3. 삭제된 매물 처리
+            # 3. 삭제된 매물 처리 (개선된 방식)
             for article_no in existing_map:
                 if article_no not in collected_ids:
+                    deleted_property = existing_map[article_no]
+                    
+                    # 매물을 비활성화하고 삭제 정보 기록
+                    delete_update = {
+                        'is_active': False,
+                        'deleted_at': datetime.now().isoformat(),
+                        'deletion_reason': 'not_found'
+                    }
+                    
                     self.client.table('properties')\
-                        .update({'is_active': False})\
+                        .update(delete_update)\
                         .eq('article_no', article_no)\
                         .execute()
+                    
+                    # 삭제 이력 테이블에 기록
+                    self._save_deletion_history(article_no, deleted_property, cortar_no, today)
+                    
                     stats['removed_count'] += 1
             
             print(f"✅ 매물 저장 완료: 신규 {stats['new_count']}, 변동 {stats['updated_count']}, 삭제 {stats['removed_count']}")
@@ -182,7 +218,9 @@ class SupabaseHelper:
             'tag_list': prop.get('태그', []),
             'description': prop.get('설명', ''),
             'details': details_info,  # 상세정보 전체를 JSONB로 저장
-            'collected_date': collected_date.isoformat()
+            'collected_date': collected_date.isoformat(),
+            'last_seen_date': collected_date.isoformat(),  # 신규 필드 추가
+            'is_active': True  # 기본값 명시
         }
     
     def _parse_price(self, price_str: Any) -> Optional[int]:
@@ -209,21 +247,89 @@ class SupabaseHelper:
                 return None
         return None
     
-    def _save_price_history(self, article_no: str, old_price: int, new_price: int, changed_date: date):
-        """가격 변동 이력 저장"""
+    def _save_price_history(self, article_no: str, trade_type: str, 
+                          old_price: int, new_price: int, 
+                          old_rent_price: int, new_rent_price: int, 
+                          changed_date: date):
+        """가격 변동 이력 저장 (월세 포함)"""
+        # 매매/전세 가격 변동 계산
         change_amount = new_price - old_price
         change_percent = (change_amount / old_price * 100) if old_price > 0 else 0
         
+        # 월세 변동 계산
+        rent_change_amount = new_rent_price - old_rent_price if old_rent_price is not None and new_rent_price is not None else None
+        rent_change_percent = None
+        if rent_change_amount is not None and old_rent_price > 0:
+            rent_change_percent = (rent_change_amount / old_rent_price * 100)
+        
         history_record = {
             'article_no': article_no,
+            'trade_type': trade_type,
             'previous_price': old_price,
             'new_price': new_price,
+            'previous_rent_price': old_rent_price,
+            'new_rent_price': new_rent_price,
             'change_amount': change_amount,
             'change_percent': round(change_percent, 2),
+            'rent_change_amount': rent_change_amount,
+            'rent_change_percent': round(rent_change_percent, 2) if rent_change_percent is not None else None,
             'changed_date': changed_date.isoformat()
         }
         
-        self.client.table('price_history').insert(history_record).execute()
+        try:
+            self.client.table('price_history').insert(history_record).execute()
+            print(f"💰 가격 변동 기록: {article_no} - 가격: {old_price:,} → {new_price:,}만원")
+            if rent_change_amount:
+                print(f"💰 월세 변동: {old_rent_price:,} → {new_rent_price:,}만원")
+        except Exception as e:
+            print(f"⚠️ 가격 이력 저장 실패 ({article_no}): {e}")
+    
+    def _save_deletion_history(self, article_no: str, property_data: Dict, cortar_no: str, deleted_date: date):
+        """삭제된 매물 이력 저장"""
+        try:
+            # 매물이 활성 상태였던 기간 계산
+            created_at = property_data.get('created_at')
+            days_active = None
+            
+            if created_at:
+                try:
+                    # created_at이 ISO 형식 문자열인 경우 파싱
+                    if isinstance(created_at, str):
+                        from datetime import datetime
+                        created_date = datetime.fromisoformat(created_at.replace('Z', '+00:00')).date()
+                        days_active = (deleted_date - created_date).days
+                except:
+                    days_active = None
+            
+            # 현재 매물 정보 조회해서 삭제 이력에 저장
+            try:
+                current_property = self.client.table('properties')\
+                    .select('price, rent_price, trade_type, real_estate_type')\
+                    .eq('article_no', article_no)\
+                    .single()\
+                    .execute()
+                
+                property_info = current_property.data if current_property.data else {}
+            except:
+                property_info = {}
+            
+            deletion_record = {
+                'article_no': article_no,
+                'deleted_date': deleted_date.isoformat(),
+                'deletion_reason': 'not_found',
+                'days_active': days_active,
+                'final_price': property_info.get('price'),
+                'final_rent_price': property_info.get('rent_price'),
+                'final_trade_type': property_info.get('trade_type'),
+                'cortar_no': cortar_no,
+                'real_estate_type': property_info.get('real_estate_type')
+            }
+            
+            self.client.table('deletion_history').insert(deletion_record).execute()
+            print(f"🗑️ 삭제 이력 저장: {article_no} (활성 기간: {days_active}일)")
+            
+        except Exception as e:
+            print(f"⚠️ 삭제 이력 저장 실패 ({article_no}): {e}")
     
     def _calculate_distribution(self, values: List[float]) -> Dict:
         """값 분포 계산"""
