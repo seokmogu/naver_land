@@ -574,13 +574,50 @@ def collect_by_cortar_no(cortar_no: str, include_details: bool = True, max_pages
             print("❌ 토큰 획득 실패")
             return False
         
-        # URL 생성 (15줌 레벨 사용)
-        url = f"https://new.land.naver.com/offices?ms={center_lat},{center_lon},15&a=SG:SMS:GJCG:APTHGJ:GM:TJ&e=RETAIL"
-        print(f"🌐 생성된 URL: {url}")
-        
-        # 수집기 생성 및 실행
+        # 수집기 생성
         collector = FixedNaverCollector(token)
-        result = collector.collect_from_url(url, include_details, max_pages)
+        
+        # 직접 cortar_no로 수집 (불필요한 지역코드 조회 건너뛰기)
+        print(f"🚀 직접 cortar_no로 수집 시작: {cortar_no}")
+        
+        # 파일 준비 (스트리밍 방식)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"naver_streaming_{dong_name}_{cortar_no}_{timestamp}.json"
+        
+        # 결과 폴더 생성
+        results_dir = os.path.join(os.path.dirname(__file__), 'results')
+        os.makedirs(results_dir, exist_ok=True)
+        
+        filepath = os.path.join(results_dir, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            # 전체 JSON 구조 시작
+            f.write('{\n')
+            
+            # 메타데이터 작성
+            f.write('  "수집정보": {\n')
+            f.write('    "수집시간": "' + timestamp + '",\n')
+            f.write('    "지역코드": "' + cortar_no + '",\n')
+            f.write('    "동이름": "' + dong_name + '",\n')
+            f.write('    "수집방식": "cortar_no_직접수집"\n')
+            f.write('  },\n')
+            
+            # 스트리밍 수집 시작 (지역코드 조회 없이 바로 수집)
+            total_collected = collector.collect_articles(
+                cortar_no=cortar_no,
+                parsed_url={"direct_cortar": True},
+                max_pages=max_pages,
+                include_details=include_details,
+                output_file=f
+            )
+            
+            # 전체 JSON 구조 종료
+            f.write('\n}')
+        
+        result = {
+            'success': total_collected > 0,
+            'filepath': filepath,
+            'count': total_collected
+        }
         
         if result['success']:
             print(f"✅ {dong_name} 수집 완료 ({result['count']}개 매물)")
