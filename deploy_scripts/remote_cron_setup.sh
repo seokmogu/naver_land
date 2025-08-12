@@ -65,9 +65,9 @@ source venv/bin/activate
 # 수집 실행 (collectors 디렉토리에서)
 cd collectors
 
-# 배치 스케줄러로 수집 실행
-echo "$(date): 배치 수집 시작" >> "$LOG_FILE"
-python3 batch_collection_scheduler.py >> "$LOG_FILE" 2>&1
+# 강남구 병렬 배치 수집 실행 (상세정보 포함)
+echo "$(date): 강남구 병렬 수집 시작" >> "$LOG_FILE"
+python3 parallel_batch_collect_gangnam.py --max-workers 2 >> "$LOG_FILE" 2>&1
 
 # 결과 확인
 if [ $? -eq 0 ]; then

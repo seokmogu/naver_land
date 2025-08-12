@@ -72,7 +72,7 @@ case "${1:-help}" in
         ;;
     "test")
         print_step "수집 테스트 실행"
-        run_remote_command "cd ~/naver_land/collectors && source ../venv/bin/activate && python3 batch_collection_scheduler.py"
+        run_remote_command "cd ~/naver_land/collectors && source ../venv/bin/activate && python3 parallel_batch_collect_gangnam.py --max-workers 1"
         ;;
     "test-simple")
         print_step "단순 Import 테스트"
