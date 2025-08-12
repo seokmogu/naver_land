@@ -5,7 +5,7 @@ set -e
 
 INSTANCE_NAME="naver-collector"
 ZONE="us-central1-a"
-PROJECT_ID=$(gcloud config get-value project 2>/dev/null || echo "")
+PROJECT_ID="gbd-match"
 
 # 색상 정의
 RED='\033[0;31m'

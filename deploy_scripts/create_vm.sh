@@ -7,7 +7,7 @@ echo "🖥️ GCP VM 인스턴스 생성 시작"
 echo "==============================="
 
 # 설정 변수
-PROJECT_ID=""
+PROJECT_ID="gbd-match"
 INSTANCE_NAME="naver-collector"
 ZONE="us-central1-a"
 MACHINE_TYPE="e2-micro"
@@ -16,14 +16,16 @@ IMAGE_PROJECT="ubuntu-os-cloud"
 BOOT_DISK_SIZE="30GB"
 BOOT_DISK_TYPE="pd-standard"
 
-# 1. 프로젝트 ID 확인
-if [ -z "$PROJECT_ID" ]; then
-    PROJECT_ID=$(gcloud config get-value project 2>/dev/null || echo "")
-    if [ -z "$PROJECT_ID" ]; then
-        echo "❓ GCP 프로젝트 ID를 입력하세요:"
-        read -r PROJECT_ID
-        gcloud config set project "$PROJECT_ID"
-    fi
+# 1. 프로젝트 설정
+echo "🔧 프로젝트 설정: $PROJECT_ID"
+gcloud config set project "$PROJECT_ID"
+
+# 프로젝트 존재 확인
+if ! gcloud projects describe "$PROJECT_ID" --quiet &>/dev/null; then
+    echo "❌ 오류: 프로젝트 '$PROJECT_ID'가 존재하지 않거나 접근할 수 없습니다."
+    echo "📋 사용 가능한 프로젝트 목록:"
+    gcloud projects list --format="table(projectId,name,projectNumber)"
+    exit 1
 fi
 
 echo "📋 배포 설정:"
@@ -38,18 +40,20 @@ echo ""
 echo "🔌 필요한 API 활성화 중..."
 gcloud services enable compute.googleapis.com
 
-# 3. 방화벽 규칙 생성 (HTTP/HTTPS)
+# 3. 방화벽 규칙 생성 (HTTP/HTTPS) - 프로젝트 ID 명시
 echo ""
 echo "🔥 방화벽 규칙 확인 중..."
-if ! gcloud compute firewall-rules describe default-allow-http --quiet &>/dev/null; then
+if ! gcloud compute firewall-rules describe default-allow-http --project="$PROJECT_ID" --quiet &>/dev/null; then
     gcloud compute firewall-rules create default-allow-http \
+        --project="$PROJECT_ID" \
         --allow tcp:80 \
         --source-ranges 0.0.0.0/0 \
         --description "Allow HTTP traffic"
 fi
 
-if ! gcloud compute firewall-rules describe default-allow-https --quiet &>/dev/null; then
+if ! gcloud compute firewall-rules describe default-allow-https --project="$PROJECT_ID" --quiet &>/dev/null; then
     gcloud compute firewall-rules create default-allow-https \
+        --project="$PROJECT_ID" \
         --allow tcp:443 \
         --source-ranges 0.0.0.0/0 \
         --description "Allow HTTPS traffic"
@@ -87,8 +91,8 @@ mkdir -p /home/$(ls /home | head -1)/setup
 cat > /home/$(ls /home | head -1)/setup/clone_project.sh << 'INNER_EOF'
 #!/bin/bash
 # 프로젝트 클론 및 설정 스크립트
-echo "GitHub 저장소 URL을 입력하세요:"
-read -r REPO_URL
+REPO_URL="https://github.com/seokmogu/naver_land.git"
+echo "GitHub 저장소 클론 중: $REPO_URL"
 
 git clone "$REPO_URL" ~/naver_land
 cd ~/naver_land

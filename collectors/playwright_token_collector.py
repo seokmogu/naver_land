@@ -17,10 +17,22 @@ class PlaywrightTokenCollector:
         print("🔍 Playwright로 토큰 획득 시작...")
         
         with sync_playwright() as p:
-            # 브라우저 실행
-            browser = p.chromium.launch(headless=True)
+            # 브라우저 실행 (VM 환경 대응)
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    '--no-sandbox', 
+                    '--disable-setuid-sandbox', 
+                    '--disable-dev-shm-usage',
+                    '--disable-blink-features=AutomationControlled',
+                    '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                ]
+            )
             context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                viewport={'width': 1920, 'height': 1080},
+                locale='ko-KR',
+                timezone_id='Asia/Seoul'
             )
             
             # 네트워크 요청 가로채기
@@ -39,11 +51,18 @@ class PlaywrightTokenCollector:
             
             try:
                 print("📄 네이버 부동산 접속 중...")
-                page.goto("https://new.land.naver.com/offices", wait_until="networkidle")
+                # 원래 URL로 접속 (토큰 캡처용)
+                page.goto("https://new.land.naver.com/offices?ms=37.4986291,127.0359669,13&a=SG:SMS:GJCG:APTHGJ:GM:TJ&e=RETAIL", 
+                         wait_until="domcontentloaded", timeout=30000)
                 
-                # 페이지 로딩 대기
+                # 페이지 로딩 대기 (더 유연한 방식)
                 print("⏳ 페이지 로딩 대기...")
-                page.wait_for_selector(".item", timeout=10000)
+                try:
+                    page.wait_for_selector(".item", timeout=10000)
+                except:
+                    # item이 없어도 진행
+                    print("⚠️ .item 셀렉터 없음, 계속 진행...")
+                    page.wait_for_timeout(3000)
                 
                 # API 요청 트리거를 위해 스크롤
                 page.evaluate("window.scrollTo(0, 500)")

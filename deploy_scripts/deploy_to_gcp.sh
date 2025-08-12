@@ -55,69 +55,26 @@ fi
 
 # 3. 프로젝트 설정
 print_step "3단계: GCP 프로젝트 설정"
-CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null || echo "")
+TARGET_PROJECT="gbd-match"
 
-if [ -z "$CURRENT_PROJECT" ]; then
-    echo ""
-    echo "사용 가능한 프로젝트 목록:"
+print_success "프로젝트 설정: $TARGET_PROJECT"
+gcloud config set project "$TARGET_PROJECT"
+
+# 프로젝트 존재 확인
+if ! gcloud projects describe "$TARGET_PROJECT" --quiet &>/dev/null; then
+    print_error "프로젝트 '$TARGET_PROJECT'가 존재하지 않거나 접근할 수 없습니다."
+    echo "📋 사용 가능한 프로젝트 목록:"
     gcloud projects list --format="table(projectId,name,projectNumber)"
-    echo ""
-    echo "사용할 프로젝트 ID를 입력하세요 (새 프로젝트 생성: 'new'):"
-    read -r PROJECT_CHOICE
-    
-    if [ "$PROJECT_CHOICE" = "new" ]; then
-        echo "새 프로젝트 ID를 입력하세요 (예: naver-collector-12345):"
-        read -r NEW_PROJECT_ID
-        echo "프로젝트 이름을 입력하세요:"
-        read -r NEW_PROJECT_NAME
-        
-        print_step "새 프로젝트 생성 중..."
-        gcloud projects create "$NEW_PROJECT_ID" --name="$NEW_PROJECT_NAME"
-        gcloud config set project "$NEW_PROJECT_ID"
-        
-        # 결제 계정 연결 (필요시)
-        print_warning "무료 티어를 사용하려면 결제 계정 연결이 필요할 수 있습니다."
-        echo "GCP Console에서 결제 계정을 연결하세요: https://console.cloud.google.com/billing"
-        echo "계속하려면 Enter를 누르세요..."
-        read -r
-    else
-        gcloud config set project "$PROJECT_CHOICE"
-    fi
-else
-    print_success "현재 프로젝트: $CURRENT_PROJECT"
-    echo "다른 프로젝트를 사용하시겠습니까? (y/N):"
-    read -r CHANGE_PROJECT
-    if [[ "$CHANGE_PROJECT" =~ ^[Yy]$ ]]; then
-        gcloud projects list --format="table(projectId,name,projectNumber)"
-        echo "프로젝트 ID를 입력하세요:"
-        read -r NEW_PROJECT_ID
-        gcloud config set project "$NEW_PROJECT_ID"
-    fi
+    exit 1
 fi
 
-FINAL_PROJECT=$(gcloud config get-value project)
+FINAL_PROJECT="$TARGET_PROJECT"
 print_success "사용할 프로젝트: $FINAL_PROJECT"
 
-# 4. GitHub 저장소 업로드 확인
+# 4. GitHub 저장소 설정
 print_step "4단계: GitHub 저장소 준비"
-echo "프로젝트를 GitHub에 업로드했습니까? (y/N):"
-read -r GITHUB_UPLOADED
-
-if [[ ! "$GITHUB_UPLOADED" =~ ^[Yy]$ ]]; then
-    print_warning "먼저 GitHub에 프로젝트를 업로드하세요:"
-    echo "1. GitHub에서 새 저장소 생성"
-    echo "2. 다음 명령어 실행:"
-    echo "   git add ."
-    echo "   git commit -m 'Add GCP deployment scripts'"
-    echo "   git remote add origin https://github.com/YOUR_USERNAME/naver_land.git"
-    echo "   git push -u origin main"
-    echo ""
-    echo "업로드 완료 후 Enter를 누르세요..."
-    read -r
-fi
-
-echo "GitHub 저장소 URL을 입력하세요 (예: https://github.com/username/naver_land.git):"
-read -r GITHUB_REPO_URL
+GITHUB_REPO_URL="https://github.com/seokmogu/naver_land.git"
+print_success "GitHub 저장소: $GITHUB_REPO_URL"
 
 # 5. VM 생성
 print_step "5단계: VM 인스턴스 생성"
