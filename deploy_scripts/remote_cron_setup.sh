@@ -65,9 +65,9 @@ source venv/bin/activate
 # 수집 실행 (collectors 디렉토리에서)
 cd collectors
 
-# 성능 최적화: 2개 워커로 실행 (메모리 절약)
-echo "$(date): 수집 시작 - 2개 워커" >> "$LOG_FILE"
-python3 parallel_batch_collect_gangnam.py --max-workers 2 >> "$LOG_FILE" 2>&1
+# 배치 스케줄러로 수집 실행
+echo "$(date): 배치 수집 시작" >> "$LOG_FILE"
+python3 batch_collection_scheduler.py >> "$LOG_FILE" 2>&1
 
 # 결과 확인
 if [ $? -eq 0 ]; then
