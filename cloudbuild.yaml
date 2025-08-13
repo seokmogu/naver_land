@@ -1,0 +1,33 @@
+# Cloud Build 설정 파일
+steps:
+  # Docker 이미지 빌드
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/naver-collector', '.']
+  
+  # Container Registry에 푸시
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/naver-collector']
+  
+  # Cloud Run에 배포
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'naver-collector'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/naver-collector'
+      - '--region'
+      - 'asia-northeast3'  # 서울 리전
+      - '--platform'
+      - 'managed'
+      - '--memory'
+      - '2Gi'
+      - '--timeout'
+      - '3600'  # 1시간
+      - '--max-instances'
+      - '1'
+      - '--no-allow-unauthenticated'
+
+images:
+  - 'gcr.io/$PROJECT_ID/naver-collector'

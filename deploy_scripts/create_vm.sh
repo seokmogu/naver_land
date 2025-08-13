@@ -86,6 +86,25 @@ apt-get install -y \
     libgtk-3-0 libatspi2.0-0 libxrandr2 libasound2 \
     libxdamage1 libxss1 libgconf-2-4
 
+# Docker 설치
+apt-get install -y ca-certificates curl gnupg
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Docker 사용자 권한 설정
+usermod -aG docker $(ls /home | head -1)
+
+# 스왑 메모리 설정 (무료티어 1GB RAM 보완)
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+
 # 프로젝트 클론을 위한 준비 (사용자가 나중에 수동으로 실행)
 mkdir -p /home/$(ls /home | head -1)/setup
 cat > /home/$(ls /home | head -1)/setup/clone_project.sh << 'INNER_EOF'

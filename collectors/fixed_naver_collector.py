@@ -13,16 +13,33 @@ from urllib.parse import urlparse, parse_qs
 from kakao_address_converter import KakaoAddressConverter
 
 class FixedNaverCollector:
-    def __init__(self, token, use_address_converter=True):
-        if not token:
+    def __init__(self, token_data, use_address_converter=True):
+        if not token_data:
             raise ValueError("JWT 토큰이 필요합니다.")
         
-        self.token = token
+        # token_data가 문자열이면 기존 방식, dict이면 새로운 방식
+        if isinstance(token_data, str):
+            self.token = token_data
+            self.cookies = {}
+        else:
+            self.token = token_data['token']
+            self.cookies = {cookie['name']: cookie['value'] for cookie in token_data['cookies']}
         self.headers = {
             'authorization': f'Bearer {self.token}',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'Accept': 'application/json',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
             'Referer': 'https://new.land.naver.com/',
+            'Origin': 'https://new.land.naver.com',
+            'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
         }
         
         # 주소 변환기 초기화 (선택적)
@@ -75,7 +92,7 @@ class FixedNaverCollector:
         print(f"📋 파라미터: {params}")
         
         try:
-            response = requests.get(url, headers=self.headers, params=params)
+            response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
             print(f"📊 응답 상태: {response.status_code}")
             
             if response.status_code == 200:
@@ -118,7 +135,7 @@ class FixedNaverCollector:
         params = {'complexNo': ''}
         
         try:
-            response = requests.get(url, headers=self.headers, params=params)
+            response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
             if response.status_code == 200:
                 return response.json()
             else:
@@ -256,7 +273,7 @@ class FixedNaverCollector:
                 if page > 1:
                     time.sleep(0.3)  # 0.3초 대기 (속도 최적화)
                 
-                response = requests.get(url, headers=self.headers, params=params)
+                response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -568,14 +585,14 @@ def collect_by_cortar_no(cortar_no: str, include_details: bool = True, max_pages
         # 토큰 획득
         print("🔑 토큰 수집 중...")
         token_collector = PlaywrightTokenCollector()
-        token = token_collector.get_token_with_playwright()
+        token_data = token_collector.get_token_with_playwright()
         
-        if not token:
+        if not token_data:
             print("❌ 토큰 획득 실패")
             return False
         
         # 수집기 생성
-        collector = FixedNaverCollector(token)
+        collector = FixedNaverCollector(token_data)
         
         # 직접 cortar_no로 수집 (불필요한 지역코드 조회 건너뛰기)
         print(f"🚀 직접 cortar_no로 수집 시작: {cortar_no}")
