@@ -92,6 +92,8 @@ class FixedNaverCollector:
         print(f"📋 파라미터: {params}")
         
         try:
+            # VM 성능 고려한 요청 간격 추가
+            time.sleep(3)  # 3초 대기
             response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
             print(f"📊 응답 상태: {response.status_code}")
             
@@ -135,6 +137,8 @@ class FixedNaverCollector:
         params = {'complexNo': ''}
         
         try:
+            # VM 성능 고려한 요청 간격 추가
+            time.sleep(3)  # 3초 대기
             response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
             if response.status_code == 200:
                 return response.json()
@@ -273,7 +277,9 @@ class FixedNaverCollector:
                 if page > 1:
                     time.sleep(0.3)  # 0.3초 대기 (속도 최적화)
                 
-                response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
+                # VM 성능 고려한 요청 간격 추가
+            time.sleep(3)  # 3초 대기
+            response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
                 
                 if response.status_code == 200:
                     data = response.json()

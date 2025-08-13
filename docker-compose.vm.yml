@@ -21,8 +21,8 @@ services:
           memory: 800M  # 1GB 중 800MB만 사용 (OS용 200MB 확보)
         reservations:
           memory: 400M
-    # 단일 동 수집 (메모리 절약)
+    # VM 최적화: 순차 처리 + 요청 간격
     command: >
       bash -c "cd collectors && 
-      python3 fixed_naver_collector.py 1168010100 true 10"
+      python3 parallel_batch_collect_gangnam.py 1"
     restart: unless-stopped

@@ -197,7 +197,7 @@ def main():
     
     # 수집 옵션
     include_details = True  # 상세정보 포함 (기본값 변경)
-    max_workers = 4  # 병렬 프로세스 수 (기본값: 4개)
+    max_workers = 1  # VM 성능 고려하여 순차 처리 (기본값: 1개)
     
     # 명령행 인자 처리
     if len(sys.argv) > 1:
