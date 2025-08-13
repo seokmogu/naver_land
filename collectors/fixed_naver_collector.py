@@ -278,8 +278,8 @@ class FixedNaverCollector:
                     time.sleep(0.3)  # 0.3초 대기 (속도 최적화)
                 
                 # VM 성능 고려한 요청 간격 추가
-            time.sleep(3)  # 3초 대기
-            response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
+                time.sleep(3)  # 3초 대기
+                response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
                 
                 if response.status_code == 200:
                     data = response.json()
