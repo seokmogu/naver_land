@@ -8,9 +8,21 @@ import requests
 import json
 import time
 import os
+import random
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from kakao_address_converter import KakaoAddressConverter
+
+def get_random_user_agent():
+    """VM 차단 우회를 위한 랜덤 User-Agent 생성"""
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0"
+    ]
+    return random.choice(user_agents)
 
 class FixedNaverCollector:
     def __init__(self, token_data, use_address_converter=True):
@@ -26,7 +38,7 @@ class FixedNaverCollector:
             self.cookies = {cookie['name']: cookie['value'] for cookie in token_data['cookies']}
         self.headers = {
             'authorization': f'Bearer {self.token}',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'User-Agent': get_random_user_agent(),
             'Accept': 'application/json',
             'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
             'Accept-Encoding': 'gzip, deflate, br, zstd',
@@ -277,8 +289,9 @@ class FixedNaverCollector:
                 if page > 1:
                     time.sleep(0.3)  # 0.3초 대기 (속도 최적화)
                 
-                # VM 성능 고려한 요청 간격 추가
-                time.sleep(3)  # 3초 대기
+                # VM IP 차단 우회를 위한 랜덤 대기 (패턴 숨김)
+                delay = random.uniform(8, 15)  # 8-15초 랜덤 대기
+                time.sleep(delay)
                 response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
                 
                 if response.status_code == 200:
