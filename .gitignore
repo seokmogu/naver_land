@@ -30,6 +30,7 @@ Thumbs.db
 !config.json
 !gu_config.json
 !supabase_schema.sql
+!deploy_scripts/ec2_info.json
 token.txt
 node_modules
 

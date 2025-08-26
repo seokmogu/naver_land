@@ -1,0 +1,7 @@
+{
+  "instance_id": "i-0034e25f31f58b25d",
+  "public_ip": "52.78.34.225",
+  "key_path": "/home/hackit/.ssh/naver-land-collector-v2-key.pem",
+  "region": "ap-northeast-2",
+  "instance_type": "t3.small"
+}
