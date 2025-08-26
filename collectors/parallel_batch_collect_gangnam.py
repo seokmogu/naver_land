@@ -13,7 +13,8 @@ from datetime import datetime
 from typing import List, Dict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from supabase_client import SupabaseHelper
-from fixed_naver_collector import collect_by_cortar_no
+from cached_token_collector import collect_by_cortar_no
+from progress_logger import ProgressLogger
 
 # 전역 변수로 종료 상태 관리
 shutdown_requested = False
@@ -53,142 +54,77 @@ def get_gangnam_collection_priority() -> List[Dict]:
     return sorted(areas, key=lambda x: x['priority_score'], reverse=True)
 
 def collect_single_dong(area_info: Dict, include_details: bool = False) -> Dict:
-    """단일 동 수집 (병렬 처리용)"""
+    """단일 동 수집 (병렬 처리용) - 향상된 로거 사용"""
     dong_name = area_info['dong_name']
     cortar_no = area_info['cortar_no']
+    process_name = mp.current_process().name
     
-    print(f"🎯 [{mp.current_process().name}] {dong_name} ({cortar_no}) 수집 시작")
+    print(f"🎯 [{process_name}] {dong_name} ({cortar_no}) 수집 시작")
     
-    collection_start = datetime.now()
-    
-    # 수집 로그 시작 (로그 저장 실패 시에도 수집 계속)
-    log_data = None
-    try:
-        helper = SupabaseHelper()
-        log_data = {
-            'gu_name': '강남구',
-            'dong_name': dong_name,
-            'cortar_no': cortar_no,
-            'collection_type': f'parallel_collection_{mp.current_process().name}',
-            'status': 'started',
-            'started_at': collection_start.isoformat()
-        }
-        helper.log_collection(log_data)
-    except Exception as e:
-        print(f"⚠️ [{mp.current_process().name}] 로그 저장 실패, 수집은 계속: {e}")
-        log_data = None
+    # ProgressLogger 사용으로 자동 로그 관리 및 진행 상태 업데이트
+    logger = ProgressLogger()
     
     try:
-        # 매물 데이터 수집 (각 프로세스에서 독립적으로 토큰 생성)
-        collect_result = collect_by_cortar_no(cortar_no, include_details, max_pages=999)
-        
-        if collect_result['success']:
-            collection_end = datetime.now()
-            duration = (collection_end - collection_start).total_seconds()
-            collected_count = collect_result['count']
-            json_filepath = collect_result['filepath']
+        with logger.log_collection('강남구', dong_name, cortar_no, f'parallel_collection_{process_name}') as log_context:
+            collection_start = time.time()
             
-            print(f"✅ [{mp.current_process().name}] {dong_name} 수집 완료 (소요시간: {duration:.1f}초, {collected_count}개 매물)")
+            # 매물 데이터 수집 (각 프로세스에서 독립적으로 토큰 생성)
+            collect_result = collect_by_cortar_no(cortar_no, include_details, max_pages=999)
             
-            # JSON 파일을 Supabase에 저장
-            print(f"💾 [{mp.current_process().name}] Supabase 저장 시작: {json_filepath}")
-            from json_to_supabase import process_json_file
-            
-            supabase_result = process_json_file(json_filepath, cortar_no)
-            
-            if supabase_result['success']:
-                print(f"✅ [{mp.current_process().name}] Supabase 저장 완료: {supabase_result['count']}개 매물")
+            if collect_result['success']:
+                duration = time.time() - collection_start
+                collected_count = collect_result['count']
+                json_filepath = collect_result['filepath']
                 
-                # 성공 로그 업데이트
-                if log_data:
-                    try:
-                        log_data.update({
-                            'status': 'completed',
-                            'completed_at': collection_end.isoformat(),
-                            'total_collected': collected_count
-                        })
-                        helper.log_collection(log_data)
-                    except Exception as e:
-                        print(f"⚠️ [{mp.current_process().name}] 성공 로그 업데이트 실패: {e}")
+                print(f"✅ [{process_name}] {dong_name} 수집 완료 (소요시간: {duration:.1f}초, {collected_count}개 매물)")
                 
-                return {
-                    'success': True,
-                    'dong_name': dong_name,
-                    'duration': duration,
-                    'collected_count': collected_count,
-                    'supabase_count': supabase_result['count'],
-                    'supabase_stats': supabase_result['stats'],
-                    'json_filepath': json_filepath,
-                    'process_name': mp.current_process().name
-                }
+                # JSON 파일을 Supabase에 저장
+                print(f"💾 [{process_name}] Supabase 저장 시작: {json_filepath}")
+                from json_to_supabase import process_json_file
+                
+                supabase_result = process_json_file(json_filepath, cortar_no)
+                
+                if supabase_result['success']:
+                    print(f"✅ [{process_name}] Supabase 저장 완료: {supabase_result['count']}개 매물")
+                    
+                    # 최종 통계 저장 (SimpleEnhancedLogger 자동으로 completed 처리)
+                    logger.log_final_stats(
+                        log_context['log_id'], 
+                        collected_count, 
+                        supabase_result['stats'], 
+                        duration
+                    )
+                    
+                    return {
+                        'success': True,
+                        'dong_name': dong_name,
+                        'duration': duration,
+                        'collected_count': collected_count,
+                        'supabase_count': supabase_result['count'],
+                        'supabase_stats': supabase_result['stats'],
+                        'json_filepath': json_filepath,
+                        'process_name': process_name
+                    }
+                else:
+                    print(f"❌ [{process_name}] Supabase 저장 실패: {supabase_result.get('message', 'Unknown')}")
+                    
+                    # 부분 성공 - 수집은 됐지만 DB 저장 실패
+                    raise Exception(f"Supabase 저장 실패: {supabase_result.get('error', 'Unknown')}")
             else:
-                print(f"❌ [{mp.current_process().name}] Supabase 저장 실패: {supabase_result.get('message', 'Unknown')}")
+                print(f"❌ [{process_name}] {dong_name} 수집 실패")
+                raise Exception('수집 실패')
                 
-                # 부분 성공 로그 (수집은 성공, DB 저장 실패)
-                if log_data:
-                    try:
-                        log_data.update({
-                            'status': 'completed',
-                            'completed_at': collection_end.isoformat(),
-                            'total_collected': collected_count,
-                            'error_message': f"Supabase 저장 실패: {supabase_result.get('error', 'Unknown')}"
-                        })
-                        helper.log_collection(log_data)
-                    except Exception as e:
-                        print(f"⚠️ [{mp.current_process().name}] 부분성공 로그 업데이트 실패: {e}")
-                
-                return {
-                    'success': False,
-                    'dong_name': dong_name,
-                    'duration': duration,
-                    'collected_count': collected_count,
-                    'error': f"Supabase 저장 실패: {supabase_result.get('error', 'Unknown')}",
-                    'json_filepath': json_filepath,
-                    'process_name': mp.current_process().name
-                }
-        else:
-            print(f"❌ [{mp.current_process().name}] {dong_name} 수집 실패")
-            
-            # 실패 로그 업데이트
-            if log_data:
-                try:
-                    log_data.update({
-                        'status': 'failed',
-                        'completed_at': datetime.now().isoformat(),
-                        'error_message': '수집 실패'
-                    })
-                    helper.log_collection(log_data)
-                except Exception as e:
-                    print(f"⚠️ [{mp.current_process().name}] 실패 로그 업데이트 실패: {e}")
-            
-            return {
-                'success': False,
-                'dong_name': dong_name,
-                'error': '수집 실패',
-                'process_name': mp.current_process().name
-            }
-            
     except Exception as e:
-        print(f"❌ [{mp.current_process().name}] {dong_name} 수집 중 오류: {e}")
-        
-        # 오류 로그 업데이트
-        if log_data:
-            try:
-                log_data.update({
-                    'status': 'failed',
-                    'completed_at': datetime.now().isoformat(),
-                    'error_message': str(e)
-                })
-                helper.log_collection(log_data)
-            except Exception as log_e:
-                print(f"⚠️ [{mp.current_process().name}] 오류 로그 업데이트 실패: {log_e}")
-        
+        print(f"❌ [{process_name}] {dong_name} 수집 중 오류: {e}")
         return {
             'success': False,
             'dong_name': dong_name,
             'error': str(e),
-            'process_name': mp.current_process().name
+            'process_name': process_name
         }
+    
+    finally:
+        print(f"🔚 [{process_name}] {dong_name} 프로세스 종료")
 
 def main():
     """강남구 전체 동 병렬 수집 메인 함수"""
@@ -200,20 +136,10 @@ def main():
     max_workers = 1  # VM 성능 고려하여 순차 처리 (기본값: 1개)
     
     # 명령행 인자 처리
-    if len(sys.argv) > 1:
-        if sys.argv[1].lower() == 'false':
-            include_details = False
-            print("⚡ 기본 정보만 수집 모드 (속도 최적화)")
-        elif sys.argv[1].isdigit():
-            max_workers = int(sys.argv[1])
-            print(f"🔄 병렬 프로세스 수: {max_workers}개")
-    
-    if len(sys.argv) > 2:
-        if sys.argv[2].lower() == 'false':
-            include_details = False
-            print("⚡ 기본 정보만 수집 모드 (속도 최적화)")
-        elif sys.argv[2].isdigit():
-            max_workers = int(sys.argv[2])
+    if '--max-workers' in sys.argv:
+        idx = sys.argv.index('--max-workers')
+        if idx + 1 < len(sys.argv) and sys.argv[idx + 1].isdigit():
+            max_workers = int(sys.argv[idx + 1])
             print(f"🔄 병렬 프로세스 수: {max_workers}개")
     
     if include_details:
@@ -250,45 +176,67 @@ def main():
     print("💡 Ctrl+C로 안전하게 종료 가능")
     print("=" * 80)
     
-    # ProcessPoolExecutor 사용하여 병렬 처리
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        # 모든 동에 대해 작업 제출
-        future_to_area = {
-            executor.submit(collect_single_dong, area, include_details): area 
-            for area in areas
-        }
-        
-        # 완료된 작업들을 순서대로 처리
-        completed_count = 0
-        for future in as_completed(future_to_area):
-            # 종료가 요청되었는지 확인
-            if shutdown_requested:
-                print("⚠️ 사용자 요청으로 종료 중... 진행 중인 작업 완료 대기")
-                executor.shutdown(wait=True)
-                break
-                
-            completed_count += 1
-            area = future_to_area[future]
+    # ProcessPoolExecutor 사용하여 병렬 처리 (안전한 리소스 관리)
+    try:
+        with ProcessPoolExecutor(max_workers=max_workers, mp_context=mp.get_context('spawn')) as executor:
+            # 모든 동에 대해 작업 제출
+            future_to_area = {
+                executor.submit(collect_single_dong, area, include_details): area 
+                for area in areas
+            }
             
-            try:
-                result = future.result()
-                results.append(result)
-                
-                print(f"\n📊 전체 진행률: {completed_count}/{total_areas} ({completed_count/total_areas*100:.1f}%)")
-                
-                if result['success']:
-                    success_count += 1
-                    print(f"✅ 성공: {result['dong_name']} ({result.get('duration', 0):.1f}초) - {result.get('process_name', 'Unknown')}")
-                else:
-                    print(f"❌ 실패: {result['dong_name']} - {result.get('error', 'Unknown')} - {result.get('process_name', 'Unknown')}")
+            # 완료된 작업들을 순서대로 처리
+            completed_count = 0
+            for future in as_completed(future_to_area):
+                # 종료가 요청되었는지 확인
+                if shutdown_requested:
+                    print("⚠️ 사용자 요청으로 종료 중... 진행 중인 작업 완료 대기")
+                    # 모든 pending futures 취소
+                    for f in future_to_area:
+                        if not f.done():
+                            f.cancel()
+                    break
                     
-            except Exception as e:
-                print(f"❌ {area['dong_name']} 처리 중 예외 발생: {e}")
-                results.append({
-                    'success': False,
-                    'dong_name': area['dong_name'],
-                    'error': f"처리 중 예외: {e}"
-                })
+                completed_count += 1
+                area = future_to_area[future]
+                
+                try:
+                    # 타임아웃 설정으로 무한 대기 방지
+                    result = future.result(timeout=7200)  # 2시간 타임아웃
+                    results.append(result)
+                    
+                    print(f"\n📊 전체 진행률: {completed_count}/{total_areas} ({completed_count/total_areas*100:.1f}%)")
+                    
+                    if result['success']:
+                        success_count += 1
+                        print(f"✅ 성공: {result['dong_name']} ({result.get('duration', 0):.1f}초) - {result.get('process_name', 'Unknown')}")
+                    else:
+                        print(f"❌ 실패: {result['dong_name']} - {result.get('error', 'Unknown')} - {result.get('process_name', 'Unknown')}")
+                        
+                except TimeoutError:
+                    print(f"⏰ 타임아웃: {area['dong_name']} (2시간 초과)")
+                    results.append({
+                        'success': False,
+                        'dong_name': area['dong_name'],
+                        'error': 'Timeout (2시간 초과)',
+                        'process_name': 'timeout'
+                    })
+                    
+                except Exception as e:
+                    print(f"❌ {area['dong_name']} 처리 중 예외 발생: {e}")
+                    results.append({
+                        'success': False,
+                        'dong_name': area['dong_name'],
+                        'error': f"처리 중 예외: {e}",
+                        'process_name': 'error'
+                    })
+    
+    except KeyboardInterrupt:
+        print("\n⚠️ 사용자에 의해 중단됨")
+    except Exception as e:
+        print(f"\n❌ 병렬 처리 중 치명적 오류: {e}")
+        import traceback
+        traceback.print_exc()
     
     # 병렬 수집 완료 요약
     batch_end = datetime.now()
@@ -305,7 +253,6 @@ def main():
     print(f"  - 시작시간: {batch_start.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  - 완료시간: {batch_end.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  - 병렬 프로세스: {max_workers}개")
-    print(f"  - 평균 처리 시간: {total_duration/max_workers/60:.1f}분/프로세스")
     
     # 결과 저장
     timestamp = batch_start.strftime("%Y%m%d_%H%M%S")
@@ -325,8 +272,7 @@ def main():
             'total_areas': total_areas,
             'success_count': success_count,
             'failed_count': total_areas - success_count,
-            'success_rate': success_count/total_areas*100,
-            'avg_processing_time_per_worker': total_duration/max_workers
+            'success_rate': success_count/total_areas*100 if total_areas > 0 else 0
         },
         'results': results
     }

@@ -104,8 +104,8 @@ class FixedNaverCollector:
         print(f"📋 파라미터: {params}")
         
         try:
-            # VM 성능 고려한 요청 간격 추가
-            time.sleep(3)  # 3초 대기
+            # 최적화된 요청 간격
+            time.sleep(1.5)  # 1.5초 대기로 단축
             response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
             print(f"📊 응답 상태: {response.status_code}")
             
@@ -149,8 +149,8 @@ class FixedNaverCollector:
         params = {'complexNo': ''}
         
         try:
-            # VM 성능 고려한 요청 간격 추가
-            time.sleep(3)  # 3초 대기
+            # 최적화된 요청 간격
+            time.sleep(1.5)  # 1.5초 대기로 단축
             response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
             if response.status_code == 200:
                 return response.json()
@@ -289,8 +289,8 @@ class FixedNaverCollector:
                 if page > 1:
                     time.sleep(0.3)  # 0.3초 대기 (속도 최적화)
                 
-                # VM IP 차단 우회를 위한 랜덤 대기 (패턴 숨김)
-                delay = random.uniform(8, 15)  # 8-15초 랜덤 대기
+                # 최적화된 대기 시간 (차단 방지 + 성능 균형)
+                delay = random.uniform(2, 4)  # 2-4초 랜덤 대기로 단축
                 time.sleep(delay)
                 response = requests.get(url, headers=self.headers, params=params, cookies=self.cookies)
                 
@@ -329,8 +329,8 @@ class FixedNaverCollector:
                                         if useful_details:
                                             article['상세정보'] = useful_details
                                     
-                                    # 상세정보 수집 간 딜레이 (차단 방지)
-                                    time.sleep(0.2)  # 상세정보 대기 시간 단축
+                                    # 상세정보 수집 간 딜레이 (최적화)
+                                    time.sleep(0.5)  # 0.5초로 적절히 조정
                             
                             # 실시간 파일 쓰기
                             if output_file:

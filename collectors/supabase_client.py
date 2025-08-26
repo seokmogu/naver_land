@@ -128,11 +128,9 @@ class SupabaseHelper:
                 if article_no not in collected_ids:
                     deleted_property = existing_map[article_no]
                     
-                    # 매물을 비활성화하고 삭제 정보 기록
+                    # 매물을 비활성화 (삭제 정보는 deletion_history 테이블에 별도 저장)
                     delete_update = {
-                        'is_active': False,
-                        'deleted_at': datetime.now().isoformat(),
-                        'deletion_reason': 'not_found'
+                        'is_active': False
                     }
                     
                     self.client.table('properties')\
