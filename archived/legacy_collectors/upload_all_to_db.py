@@ -4,9 +4,7 @@ results 폴더의 모든 JSON 파일을 Supabase에 업로드
 """
 
 import os
-import json
 import subprocess
-from datetime import datetime
 
 def extract_cortar_no_from_filename(filename):
     """파일명에서 지역코드 추출"""

@@ -7,8 +7,8 @@
 import json
 import time
 import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Dict
 from fixed_naver_collector import FixedNaverCollector
 
 class BatchCollectionScheduler:

@@ -5,7 +5,6 @@ DB와 수집 데이터 정합성 검증
 
 import os
 import json
-from collections import defaultdict
 from datetime import date
 from supabase_client import SupabaseHelper
 

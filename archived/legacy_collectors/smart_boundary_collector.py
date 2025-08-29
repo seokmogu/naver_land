@@ -9,7 +9,7 @@ import requests
 import time
 import os
 from datetime import datetime
-from typing import List, Dict, Set, Optional, Tuple
+from typing import List, Dict, Set, Optional
 from playwright_token_collector import PlaywrightTokenCollector
 
 class SmartBoundaryCollector:

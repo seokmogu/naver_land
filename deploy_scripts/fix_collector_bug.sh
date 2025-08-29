@@ -1,9 +1,11 @@
 #!/bin/bash
-# fixed_naver_collector.py의 bool subscriptable 버그 수정
+# DEPRECATED: fixed_naver_collector.py 제거됨 (v2_optimized 사용)
+# 이 스크립트는 더 이상 사용되지 않습니다.
 
 set -e
 
-echo "🔧 fixed_naver_collector.py 버그 수정"
+echo "🔧 DEPRECATED: fixed_naver_collector.py가 제거되었습니다"
+echo "📝 fixed_naver_collector_v2_optimized.py를 사용하세요"
 echo "===================================="
 
 PROJECT_ID="gbd-match"

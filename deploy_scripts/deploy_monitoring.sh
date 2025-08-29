@@ -57,10 +57,7 @@ deploy_monitoring_tools() {
     print_step "모니터링 파일들 EC2로 복사 중..."
     
     scp -i "$KEY_PATH" -o StrictHostKeyChecking=no \
-        ../collectors/quick_status.py \
         ../collectors/live_monitor.py \
-        ../collectors/monitor_dashboard.py \
-        ../collectors/simple_enhanced_logger.py \
         ../collectors/progress_logger.py \
         ubuntu@${PUBLIC_IP}:/home/ubuntu/naver_land/collectors/
     
@@ -104,7 +101,7 @@ echo "🌐 웹 대시보드 시작 중..."
 echo "📱 브라우저에서 http://$(curl -s http://checkip.amazonaws.com):8000 으로 접속하세요"
 
 # 백그라운드로 실행
-nohup python3 monitor_dashboard.py > /home/ubuntu/naver_land/logs/dashboard.log 2>&1 &
+nohup python3 live_monitor.py > /home/ubuntu/naver_land/logs/dashboard.log 2>&1 &
 echo $! > /home/ubuntu/naver_land/monitoring/dashboard.pid
 
 echo "✅ 웹 대시보드 시작됨 (PID: $(cat /home/ubuntu/naver_land/monitoring/dashboard.pid))"
@@ -153,7 +150,7 @@ if [ -f /home/ubuntu/naver_land/monitoring/dashboard.pid ]; then
 fi
 
 # 모든 모니터링 프로세스 중지
-pkill -f "monitor_dashboard.py" 2>/dev/null && echo "✅ 추가 대시보드 프로세스 중지됨"
+pkill -f "live_monitor.py" 2>/dev/null && echo "✅ 라이브 모니터 프로세스 중지됨"
 pkill -f "live_monitor.py" 2>/dev/null && echo "✅ CLI 모니터 프로세스 중지됨"
 
 echo "🎯 모든 모니터링 서비스 중지 완료"
