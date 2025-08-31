@@ -1,0 +1,149 @@
+{
+  "verification_info": {
+    "total_codes": 14,
+    "verified_count": 0,
+    "mismatch_count": 0,
+    "no_articles_count": 0,
+    "error_count": 14,
+    "verification_time": "2025-08-30 18:07:58"
+  },
+  "code_verification_results": {
+    "1168010100": {
+      "expected_name": "역삼동",
+      "actual_dong_name": "NO_RESPONSE",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "no_api_response",
+      "api_response": false,
+      "timestamp": "18:07:42"
+    },
+    "1168010300": {
+      "expected_name": "개포동",
+      "actual_dong_name": "NO_RESPONSE",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "no_api_response",
+      "api_response": false,
+      "timestamp": "18:07:48"
+    },
+    "1168010400": {
+      "expected_name": "논현동",
+      "actual_dong_name": "NO_RESPONSE",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "no_api_response",
+      "api_response": false,
+      "timestamp": "18:07:53"
+    },
+    "1168010500": {
+      "expected_name": "삼성동",
+      "actual_dong_name": "NO_RESPONSE",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "no_api_response",
+      "api_response": false,
+      "timestamp": "18:07:58"
+    },
+    "1168010600": {
+      "expected_name": "대치동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168010700": {
+      "expected_name": "신사동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168010900": {
+      "expected_name": "청담동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168011000": {
+      "expected_name": "압구정동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168011400": {
+      "expected_name": "일원동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168011500": {
+      "expected_name": "수서동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168011800": {
+      "expected_name": "도곡동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168011200": {
+      "expected_name": "자곡동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168011100": {
+      "expected_name": "세곡동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    },
+    "1168011300": {
+      "expected_name": "율현동",
+      "actual_dong_name": "ERROR",
+      "article_count": 0,
+      "sample_building": "",
+      "match_status": "page_error",
+      "api_response": false,
+      "error": "Page.goto: Target page, context or browser has been closed",
+      "timestamp": "18:07:58"
+    }
+  },
+  "api_responses": []
+}

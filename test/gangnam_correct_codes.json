@@ -1,0 +1,88 @@
+{
+  "collection_info": {
+    "method": "사용자 제공 정확한 강남구 동별 코드",
+    "update_date": "2025-08-30",
+    "total_districts": 14,
+    "verification_status": "pending_playwright_test"
+  },
+  "gangnam_district_codes": {
+    "1168010100": {
+      "name": "역삼동",
+      "status": "사용자 제공",
+      "priority": 30
+    },
+    "1168010300": {
+      "name": "개포동", 
+      "status": "사용자 제공",
+      "priority": 17
+    },
+    "1168010400": {
+      "name": "논현동",
+      "status": "사용자 제공", 
+      "priority": 23
+    },
+    "1168010500": {
+      "name": "삼성동",
+      "status": "사용자 제공",
+      "priority": 26
+    },
+    "1168010600": {
+      "name": "대치동",
+      "status": "사용자 제공",
+      "priority": 22
+    },
+    "1168010700": {
+      "name": "신사동",
+      "status": "사용자 제공", 
+      "priority": 22
+    },
+    "1168010900": {
+      "name": "청담동",
+      "status": "사용자 제공",
+      "priority": 18
+    },
+    "1168011000": {
+      "name": "압구정동",
+      "status": "사용자 제공",
+      "priority": 20
+    },
+    "1168011400": {
+      "name": "일원동",
+      "status": "사용자 제공", 
+      "priority": 11
+    },
+    "1168011500": {
+      "name": "수서동",
+      "status": "사용자 제공",
+      "priority": 12
+    },
+    "1168011800": {
+      "name": "도곡동",
+      "status": "사용자 제공",
+      "priority": 18
+    },
+    "1168011200": {
+      "name": "자곡동",
+      "status": "사용자 제공",
+      "priority": 8
+    },
+    "1168011100": {
+      "name": "세곡동",
+      "status": "사용자 제공",
+      "priority": 6
+    },
+    "1168011300": {
+      "name": "율현동",
+      "status": "사용자 제공",
+      "priority": 5
+    }
+  },
+  "code_corrections": {
+    "previous_discoveries": {
+      "1168010600": "기존 수집에서는 신사동으로 추정했으나 실제로는 대치동",
+      "1168010800": "기존 수집에서는 압구정동으로 추정했으나 실제로는 1168011000",
+      "1168011000": "기존 수집에서는 청담동으로 추정했으나 실제로는 압구정동"
+    },
+    "note": "사용자 제공 코드가 이전 추정과 다름. Playwright 검증 필요"
+  }
+}

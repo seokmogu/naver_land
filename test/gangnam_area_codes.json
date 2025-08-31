@@ -1,0 +1,64 @@
+{
+  "collection_info": {
+    "method": "Playwright 자동화를 통한 네이버 부동산 API 캡처",
+    "collection_date": "2025-08-30",
+    "collection_time": "18:02",
+    "base_url": "https://new.land.naver.com/offices",
+    "total_discovered_codes": 6
+  },
+  "gangnam_district_codes": {
+    "1168010100": {
+      "name": "미확인동1", 
+      "status": "새로 발견",
+      "verification_needed": true
+    },
+    "1168010400": {
+      "name": "미확인동2",
+      "status": "새로 발견", 
+      "verification_needed": true
+    },
+    "1168010500": {
+      "name": "미확인동3",
+      "status": "새로 발견",
+      "verification_needed": true
+    },
+    "1168010600": {
+      "name": "신사동",
+      "status": "기존 코드 확인됨",
+      "verification_needed": false
+    },
+    "1168010800": {
+      "name": "압구정동", 
+      "status": "기존 코드 확인됨",
+      "verification_needed": false
+    },
+    "1168011000": {
+      "name": "청담동",
+      "status": "기존 코드 확인됨", 
+      "verification_needed": false
+    }
+  },
+  "known_codes_not_found": {
+    "1168010700": {
+      "name": "논현동",
+      "status": "이번 수집에서 미확인",
+      "note": "다른 좌표나 조건에서 확인 필요"
+    }
+  },
+  "additional_context": {
+    "total_api_responses": 188,
+    "seoul_districts_found": 25,
+    "gangnam_parent_code": "1168000000",
+    "pattern_analysis": "116801xxxx 패턴으로 강남구 동별 코드 구성"
+  },
+  "recommended_config": {
+    "GANGNAM_AREAS": [
+      {"name": "신사동", "code": "1168010600", "verified": true},
+      {"name": "압구정동", "code": "1168010800", "verified": true}, 
+      {"name": "청담동", "code": "1168011000", "verified": true},
+      {"name": "미확인동1", "code": "1168010100", "verified": false},
+      {"name": "미확인동2", "code": "1168010400", "verified": false},
+      {"name": "미확인동3", "code": "1168010500", "verified": false}
+    ]
+  }
+}
