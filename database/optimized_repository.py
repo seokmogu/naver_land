@@ -124,6 +124,17 @@ class OptimizedPropertyRepository:
                 'parking_possible': self._safe_bool(article_detail.get('parking_possible')),
                 'elevator_count': self._safe_int(sections.get('articleFacility', {}).get('elevator_count')),
                 
+                # 새로 추가된 필드들
+                'bathroom_count': article_detail.get('bathroom_count'),
+                'office_count': article_detail.get('office_count'),
+                'heating_type': sections.get('articleFacility', {}).get('heating_type'),
+                'approval_date': sections.get('articleFacility', {}).get('approval_date'),
+                
+                # 건물등기 정보 (articleBuildingRegister)
+                'building_structure': sections.get('articleBuildingRegister', {}).get('structure_type'),
+                'building_main_purpose': sections.get('articleBuildingRegister', {}).get('main_purpose'),
+                'total_elevator_count': self._safe_int(sections.get('articleBuildingRegister', {}).get('total_elevator_count')),
+                
                 # 입주 정보
                 'move_in_type': article_detail.get('move_in_type'),
                 'move_in_discussion': self._safe_bool(article_detail.get('move_in_discussion')),
@@ -227,21 +238,38 @@ class OptimizedPropertyRepository:
             return False
     
     def _save_photos_info(self, property_id: int, parsed_data: Dict) -> bool:
-        """naver_photos 테이블에 사진 정보 저장"""
+        """naver_photos 테이블에 사진 정보 저장 (URL 기준 중복 체크 방식)"""
         try:
             sections = parsed_data.get('sections', {})
             article_photos = sections.get('articlePhotos', {})
             
             photos = article_photos.get('photos', [])
             if not photos:
-                return True  # 사진이 없어도 성공으로 처리
+                print(f"✅ 매물 {property_id} 새로운 이미지 없음")
+                return True
             
-            # 사진별로 개별 레코드 저장 (image_url이 null이 아닌 것만)
+            # 재시도 로직 포함된 클라이언트 사용
+            retry_client = self.supabase_client.get_client_with_retry()
+            
+            # 1. 기존 이미지 URL들 조회
+            existing_result = retry_client.table('naver_photos').select('image_url').eq('property_id', property_id).execute()
+            existing_urls = set()
+            if existing_result.data:
+                existing_urls = {row['image_url'] for row in existing_result.data}
+            
+            # 2. 새로운 이미지만 필터링 (URL 기준 중복 체크)
+            new_photos = []
+            duplicate_count = 0
+            
             for photo in photos:
                 image_url = photo.get('url')
                 if not image_url:  # null, None, 빈 문자열 건너뛰기
                     continue
-                    
+                
+                if image_url in existing_urls:
+                    duplicate_count += 1
+                    continue  # 이미 존재하는 URL은 건너뛰기
+                
                 photo_data = {
                     'property_id': property_id,
                     'image_url': image_url,
@@ -249,12 +277,18 @@ class OptimizedPropertyRepository:
                     'description': photo.get('description'),
                     'display_order': self._safe_int(photo.get('order'))
                 }
-                
-                # 재시도 로직 포함된 클라이언트 사용
-                retry_client = self.supabase_client.get_client_with_retry()
-                result = retry_client.table('naver_photos').insert(photo_data).execute()
-                if not result.data:
-                    print(f"⚠️ Failed to save one photo for property {property_id}")
+                new_photos.append(photo_data)
+            
+            # 3. 새로운 이미지들만 저장
+            if new_photos:
+                result = retry_client.table('naver_photos').insert(new_photos).execute()
+                if result.data:
+                    print(f"✅ 매물 {property_id} 새 이미지 {len(result.data)}개 추가 (중복 {duplicate_count}개 건너뛰기)")
+                else:
+                    print(f"⚠️ 매물 {property_id} 이미지 저장 실패")
+                    return False
+            else:
+                print(f"✅ 매물 {property_id} 모든 이미지 이미 존재함 (중복 {duplicate_count}개 건너뛰기)")
             
             return True
             

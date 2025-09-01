@@ -64,6 +64,8 @@ class ArticleParser:
             'parking_possible': self._safe_extract(data, 'parkingPossibleYN', str),
             'walking_to_subway': self._safe_extract(data, 'walkingTimeToNearSubway', int),
             'move_in_type': self._safe_extract(data, 'moveInTypeName', str),
+            'bathroom_count': self._safe_extract(data, 'bathroomCount', str),
+            'office_count': self._safe_extract(data, 'householdCount', str),
             # 실제 API 응답에 없는 필드들 - 다른 섹션에서 가져올 것
             'elevator_count': None,  # articleFacility에서 처리
             'management_office_tel': None,  # 실제 필드명을 찾지 못함
@@ -87,7 +89,8 @@ class ArticleParser:
             'convenience_facilities': self._safe_extract(data, 'airconFacilities', list, []),
             'security_facilities': self._safe_extract(data, 'securityFacilities', list, []),
             'direction': self._safe_extract(data, 'directionTypeName', str),
-            'heat_method': self._safe_extract(data, 'heatMethodTypeName', str),
+            'heating_type': self._safe_extract(data, 'heatMethodTypeName', str),
+            'approval_date': self._safe_extract(data, 'buildingUseAprvYmd', str),
             'elevator_count': elevator_count,  # 엘리베이터 정보 추가
             'etc_facilities': etc_facilities  # 기타 편의시설 목록 추가
         }
@@ -174,6 +177,26 @@ class ArticleParser:
                     'image_id': self._safe_extract(photo, 'imageId', str)
                 })
         return {'photos': photos, 'total_count': len(photos)}
+    
+    def _parse_articleBuildingRegister(self, data: Dict, article_no: str) -> Dict:
+        return {
+            'building_register_pk': self._safe_extract(data, 'mgmBldrgstPk', str),
+            'register_type': self._safe_extract(data, 'regstrKindCdNm', str),
+            'plot_area': self._safe_extract(data, 'platArea', float),
+            'building_area': self._safe_extract(data, 'archArea', float),
+            'building_coverage_ratio': self._safe_extract(data, 'bcRat', float),
+            'total_area': self._safe_extract(data, 'totArea', float),
+            'volume_ratio': self._safe_extract(data, 'vlRat', float),
+            'structure_type': self._safe_extract(data, 'strctCdNm', str),
+            'main_purpose': self._safe_extract(data, 'mainPurpsCdNm', str),
+            'ground_floor_count': self._safe_extract(data, 'grndFlrCnt', int),
+            'underground_floor_count': self._safe_extract(data, 'ugrndFlrCnt', int),
+            'total_elevator_count': self._safe_extract(data, 'totalElvtCnt', int),
+            'elevator_info': self._safe_extract(data, 'elvtInfo', str),
+            'indoor_parking_count': self._safe_extract(data, 'indrAutoUtcnt', int),
+            'outdoor_parking_count': self._safe_extract(data, 'oudrAutoUtcnt', int),
+            'parking_info': self._safe_extract(data, 'etcParkInfo', str),
+        }
     
     def _parse_subway_list(self, subway_list: List[Dict]) -> List[Dict]:
         parsed_subways = []
