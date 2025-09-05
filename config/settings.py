@@ -76,5 +76,26 @@ class Settings:
             "수서동": "1168011500",
             "도곡동": "1168011800"
         }
+    
+    @property
+    def validation_rules(self) -> Dict[str, Any]:
+        """매물 검증 규칙 - 조건에 맞지 않으면 is_active = False"""
+        return {
+            'deposit_limits': {
+                'min': 10_000_000,      # 보증금 1천만원 미만 제외
+                'max': 500_000_000      # 보증금 5억 초과 제외
+            },
+            'monthly_rent_limits': {
+                'min': 2_000_000,       # 월세 200만원 미만 제외  
+                'max': 50_000_000       # 월세 5천만원 초과 제외
+            },
+            'elevator_required': True,   # 엘리베이터 0개 또는 null 제외
+            'excluded_trade_types': [    # 제외할 거래유형
+                'A2',  # 전세
+                'A1',  # 매매  
+                'B2'   # 단기임대
+            ],
+            'validation_enabled': True   # 검증 활성화/비활성화 스위치
+        }
 
 settings = Settings()

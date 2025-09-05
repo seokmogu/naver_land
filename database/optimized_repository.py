@@ -139,6 +139,12 @@ class OptimizedPropertyRepository:
                 'move_in_type': article_detail.get('move_in_type'),
                 'move_in_discussion': self._safe_bool(article_detail.get('move_in_discussion')),
                 
+                # 새로 추가된 날짜 필드들
+                'article_confirm_date': self._parse_date_string(article_detail.get('article_confirm_date')),
+                'expose_start_date': self._parse_date_string(article_detail.get('expose_start_date')),
+                'expose_end_date': self._parse_date_string(article_detail.get('expose_end_date')),
+                'move_in_possible_date': article_detail.get('move_in_possible_date'),  # NOW, YYYYMMDD 등 다양한 형식
+                
                 # 기타
                 'detail_description': article_detail.get('detail_description'),
                 'management_office_tel': article_detail.get('management_office_tel')
@@ -275,7 +281,8 @@ class OptimizedPropertyRepository:
                     'image_url': image_url,
                     'thumbnail_url': photo.get('thumbnail_url'),
                     'description': photo.get('description'),
-                    'display_order': self._safe_int(photo.get('order'))
+                    'display_order': self._safe_int(photo.get('order')),
+                    'registered_datetime': self._parse_datetime_string(photo.get('registered_datetime'))
                 }
                 new_photos.append(photo_data)
             
@@ -351,6 +358,43 @@ class OptimizedPropertyRepository:
         if isinstance(value, str):
             return value.lower() in ('true', 'yes', 'y', '1', 'on')
         return bool(value) if value is not None else False
+    
+    def _parse_date_string(self, date_str: str) -> Optional[str]:
+        """YYYYMMDD 형식의 날짜 문자열을 YYYY-MM-DD 형식으로 변환"""
+        if not date_str or not isinstance(date_str, str):
+            return None
+        
+        try:
+            # YYYYMMDD (8자리) 형식 확인
+            if len(date_str) == 8 and date_str.isdigit():
+                year = date_str[:4]
+                month = date_str[4:6]
+                day = date_str[6:8]
+                return f"{year}-{month}-{day}"
+            else:
+                return date_str  # 다른 형식은 그대로 저장
+        except Exception:
+            return date_str  # 파싱 실패시 원본 반환
+    
+    def _parse_datetime_string(self, datetime_str: str) -> Optional[str]:
+        """YYYYMMDDHHMMSS 형식의 날짜시간 문자열을 ISO 형식으로 변환"""
+        if not datetime_str or not isinstance(datetime_str, str):
+            return None
+        
+        try:
+            # YYYYMMDDHHMMSS (14자리) 형식 확인
+            if len(datetime_str) == 14 and datetime_str.isdigit():
+                year = datetime_str[:4]
+                month = datetime_str[4:6]
+                day = datetime_str[6:8]
+                hour = datetime_str[8:10]
+                minute = datetime_str[10:12]
+                second = datetime_str[12:14]
+                return f"{year}-{month}-{day}T{hour}:{minute}:{second}"
+            else:
+                return datetime_str  # 다른 형식은 그대로 저장
+        except Exception:
+            return datetime_str  # 파싱 실패시 원본 반환
     
     def _save_change_history(self, existing_data: Dict, new_data: Dict, property_id: int):
         """변경사항을 history 테이블에 저장"""

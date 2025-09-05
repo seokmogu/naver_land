@@ -66,6 +66,13 @@ class ArticleParser:
             'move_in_type': self._safe_extract(data, 'moveInTypeName', str),
             'bathroom_count': self._safe_extract(data, 'bathroomCount', str),
             'office_count': self._safe_extract(data, 'householdCount', str),
+            
+            # 새로 추가된 날짜 필드들
+            'article_confirm_date': self._safe_extract(data, 'articleConfirmYMD', str),  # 확인매물 날짜
+            'expose_start_date': self._safe_extract(data, 'exposeStartYMD', str),  # 노출 시작일
+            'expose_end_date': self._safe_extract(data, 'exposeEndYMD', str),  # 노출 종료일
+            'move_in_possible_date': self._safe_extract(data, 'moveInPossibleYmd', str),  # 입주가능일
+            
             # 실제 API 응답에 없는 필드들 - 다른 섹션에서 가져올 것
             'elevator_count': None,  # articleFacility에서 처리
             'management_office_tel': None,  # 실제 필드명을 찾지 못함
@@ -76,7 +83,8 @@ class ArticleParser:
             'same_address_direct_deal': self._safe_extract(data, 'sameAddrDirectCnt', int, 0),
             'same_address_hash': self._safe_extract(data, 'sameAddrHash', str),
             'price_by_area': self._safe_extract(data, 'prcPerSpace', str),
-            'nearby_sales': self._parse_price_comparison(data.get('prcInfo', {}))
+            'nearby_sales': self._parse_price_comparison(data.get('prcInfo', {})),
+            'article_confirm_date_addition': self._safe_extract(data, 'articleConfirmYmd', str)  # 추가 확인일자
         }
     
     def _parse_articleFacility(self, data: Dict, article_no: str) -> Dict:
@@ -174,7 +182,8 @@ class ArticleParser:
                     'description': self._safe_extract(photo, 'smallCategoryName', str),
                     'order': self._safe_extract(photo, 'imageOrder', int),
                     'image_type': self._safe_extract(photo, 'imageType', str),
-                    'image_id': self._safe_extract(photo, 'imageId', str)
+                    'image_id': self._safe_extract(photo, 'imageId', str),
+                    'registered_datetime': self._safe_extract(photo, 'registYmdt', str)  # 사진 등록 일시
                 })
         return {'photos': photos, 'total_count': len(photos)}
     

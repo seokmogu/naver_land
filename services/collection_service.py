@@ -58,6 +58,9 @@ class CollectionService:
             if self.address_enabled and 'articleDetail' in parsed_data.get('sections', {}):
                 self._enrich_with_address_data(parsed_data)
             
+            # 매물 검증 및 is_active 설정
+            self._validate_and_set_active_status(parsed_data, quiet)
+            
             if not quiet:
                 print(f"💾 매물 {article_no} 데이터베이스 저장 중...")
             success = self.repository.save_property(parsed_data)
@@ -191,6 +194,66 @@ class CollectionService:
                     print(f"✅ 주소 정보 추가됨: {address_info.get('primary_address', 'N/A')}")
             except Exception as e:
                 print(f"⚠️ 주소 변환 실패: {e}")
+    
+    def _validate_and_set_active_status(self, parsed_data: Dict, quiet: bool = False):
+        """매물 데이터 검증 후 is_active 상태 설정"""
+        if not settings.validation_rules['validation_enabled']:
+            if not quiet:
+                print("🔧 매물 검증 비활성화됨")
+            return
+        
+        is_active = True
+        rejection_reasons = []
+        
+        # articleDetail, articlePrice 섹션 가져오기
+        sections = parsed_data.get('sections', {})
+        article_detail = sections.get('articleDetail', {})
+        article_price = sections.get('articlePrice', {})
+        
+        # 1. 거래유형 검증 (전세/매매/단기임대 제외)
+        trade_type = article_detail.get('tradeTypeCd')
+        if trade_type in settings.validation_rules['excluded_trade_types']:
+            is_active = False
+            rejection_reasons.append(f"제외된 거래유형: {trade_type}")
+        
+        # 2. 보증금 검증
+        deposit = article_price.get('dealOrWarrantPrc', 0)
+        if isinstance(deposit, str):
+            deposit = int(deposit) if deposit.isdigit() else 0
+        
+        deposit_limits = settings.validation_rules['deposit_limits']
+        if deposit < deposit_limits['min'] or deposit > deposit_limits['max']:
+            is_active = False
+            rejection_reasons.append(f"보증금 범위 벗어남: {deposit:,}원")
+        
+        # 3. 월세 검증
+        rent = article_price.get('rentPrc', 0)
+        if isinstance(rent, str):
+            rent = int(rent) if rent.isdigit() else 0
+        
+        rent_limits = settings.validation_rules['monthly_rent_limits']
+        if rent < rent_limits['min'] or rent > rent_limits['max']:
+            is_active = False
+            rejection_reasons.append(f"월세 범위 벗어남: {rent:,}원")
+        
+        # 4. 엘리베이터 검증
+        if settings.validation_rules['elevator_required']:
+            elevator_count = article_detail.get('elevatorNum')
+            if elevator_count is None or elevator_count == 0:
+                is_active = False
+                rejection_reasons.append("엘리베이터 없음")
+        
+        # is_active 설정
+        if 'metadata' not in parsed_data:
+            parsed_data['metadata'] = {}
+        parsed_data['metadata']['is_active'] = is_active
+        
+        # 로그 출력
+        if not quiet:
+            if not is_active:
+                print(f"⚠️ 매물 비활성화: {', '.join(rejection_reasons)}")
+            else:
+                print(f"✅ 매물 검증 통과")
     
     def _collect_articles_parallel(self, article_nos: List[str], start_idx: int, max_articles: Optional[int]) -> int:
         """병렬로 매물들을 수집하여 성공한 개수 반환"""
